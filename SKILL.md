@@ -1,6 +1,6 @@
 ---
 name: baozheng-skills
-description: 一站式法律服务平台 — 专业法律咨询 + 要素式/通用起诉状起草 + 刑事专项材料辅助 + 国家法律法规数据库实时查询。集成flk.npc.gov.cn官方API实时法条查询；以22类法律领域覆盖矩阵约束路由边界；支持35个起诉状模板、5类刑事专项材料辅助；内置Logic Doctor逻辑自检、诉讼时效追踪及10类异常容错处理（含连续失败熔断）；渐进式意图收敛协议（3轮状态机）；混合意图自动任务拆解（按依赖排序→合并→顺序执行）。非标准案由自动使用通用模板。
+description: 一站式法律服务平台 — 专业法律咨询 + 要素式/通用起诉状起草 + 刑事专项材料辅助 + 法条分析与法规检索。flk.npc.gov.cn API实时法条优先，不可用时AI知识库降级兜底；以22类法律领域覆盖矩阵约束路由边界；支持35个起诉状模板、5类刑事专项材料辅助；内置Logic Doctor逻辑自检、诉讼时效追踪及10类异常容错处理（含连续失败熔断）；渐进式意图收敛协议（3轮状态机）；混合意图自动任务拆解（按依赖排序→合并→顺序执行）。非标准案由自动使用通用模板。
 version: 1.0.1
 ---
 
@@ -27,7 +27,7 @@ version: 1.0.1
 ### 公共模块（跨子技能复用）
 | 文件 | 用途 |
 |:---|:---|
-| shared-statute-engine.md | flk.npc.gov.cn 官方API检索 + 不可用时明确告知（不降级） |
+| shared-statute-engine.md | 法条检索策略（flk.npc.gov.cn API 优先 + AI 知识库降级兜底） |
 | shared-error-handling.md | 10类异常容错处理（含连续失败熔断） |
 | shared-limitation-periods.md | 诉讼时效速查 |
 | shared-disclaimer.md | 全局免责声明 |
@@ -68,8 +68,15 @@ case-00-general-civil.md / case-01-private-lending.md / case-02-divorce.md / cas
 Init：确认检索主题，步骤1+2并行启动；Step：步骤3→4→5→6串行验证；Poll：每步输出进度。
 模块A/B/D 步骤较少，按步骤自然推进，每步完成简述进展（如"已完成步骤2/5：法律依据梳理"），无需 Init-Step-Poll；模块D 的 D10 Logic Doctor 自检结果以清单附在输出末尾。
 
+## 依赖安装
+技能首次激活时，CodeBuddy 自动检测 `requirements.txt` 并安装缺失的包：
+```bash
+pip install -r requirements.txt
+```
+外部依赖：`requests`（flk API 客户端）、`python-docx`（DOCX 生成，缺失时自动降级为纯标准库输出）。
+
 ## 安全边界
-- 法条引用以 flk.npc.gov.cn 官方API为准，不可用时明确告知（不降级到非官方源）
+- 法条引用优先通过 `scripts/flk_npc_client.py` 调用 flk.npc.gov.cn API 获取实时数据，API 不可用时降级到 AI 训练知识库并标注来源
 - 起诉状标注"建议由执业律师审核后提交"
 - 模块A/B/C/D的最终输出均必须附加 `shared-disclaimer.md` 的免责声明要点
-- 失败回退参见 shared-error-handling.md（10类异常容错处理，含连续失败2次熔断）
+- 失败回退参见 shared-error-handling.md（10类异常容错处理，含连续失败5次熔断）

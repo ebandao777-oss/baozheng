@@ -107,8 +107,8 @@ pip install python-docx
 
 ```bash
 python scripts/generate_complaint_docx.py --case 01 --dry-run
-python scripts/generate_complaint_docx.py --case 01 --output output/private-lending.docx
-python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output output/private-lending-filled.docx
+python scripts/generate_complaint_docx.py --case 01 --output private-lending.docx
+python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output private-lending-filled.docx
 ```
 
 #### 从零创建 DOCX
@@ -659,7 +659,7 @@ create_generic_complaint_docx(info, "房屋租赁合同纠纷-民事起诉状-�
 
 ### Q7: 这个Skill的法律依据有多新？
 
-严格依据**中华人民共和国现行有效法律**，法律修订后持续同步更新。本Skill内置**国家法律法规数据库API实时查询**功能，在回答法律问题时优先调用全国人大官方API（flk.npc.gov.cn）获取实时、权威的法条数据，确保法条引用的准确性和时效性。具体适用请以官方最新文本及司法实践为准。
+严格依据**中华人民共和国现行有效法律**，法律修订后持续同步更新。本Skill内置 `scripts/flk_npc_client.py`（封装全国人大官方 flk.npc.gov.cn 的 `/law-search/` API），在回答法律问题时优先调用官方 API 获取实时法条数据；API 不可用时降级到 AI 训练知识库，确保法条引用的准确性和时效性。具体适用请以官方最新文本及司法实践为准。
 
 ### Q8: 起诉有时间限制吗？
 

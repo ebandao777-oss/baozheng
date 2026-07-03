@@ -1,6 +1,6 @@
 # 模块C：深度法条分析与法规检索增强
 
-本模块全部法规检索统一使用国家法律法规数据库官方 API（flk.npc.gov.cn），确保数据的真实性和时效性。两大流水线：
+本模块全部法规检索统一使用 `scripts/flk_npc_client.py`（封装 flk.npc.gov.cn `/law-search/` API），确保数据的真实性和时效性。API 不可用时降级到 AI 训练知识库并标注来源。两大流水线：
 
 **输出边界：** 模块 C 的法条分析、法规检索、类案验证和概念深挖均为 AI 辅助参考信息；最终输出必须附加 `references/shared-disclaimer.md` 的免责声明要点，不得承诺案件结果或替代执业律师意见。
 
@@ -70,9 +70,9 @@
 **触发**：用户要求分析某法条。关键词："分析这条法律"、"拆解法条"、"构成要件"等。
 
 **执行流程：**
-1. 调用 flk.npc.gov.cn API 查询法条原文（详见 references/shared-statute-engine.md）
-2. 以官方返回的条文原文为基础，进行6维度拆解
-3. 若 API 不可用，明确告知用户"无法获取官方法条原文，建议访问 flk.npc.gov.cn 自行核实"，不做猜测性分析
+1. 优先通过 `scripts/flk_npc_client.py` 从 flk.npc.gov.cn 获取法条原文；API 不可用时使用 AI 训练知识库兜底（详见 references/shared-statute-engine.md）
+2. 以条文原文为基础，进行6维度拆解
+3. 标注数据来源：`[数据来源：flk.npc.gov.cn]` 或 `[数据来源：AI知识库]`
 
 **6维度分析规范：**
 
@@ -280,12 +280,12 @@
 
 ### 步骤1：官方 API 法规检索（flk.npc.gov.cn）
 
-**架构：** 复用 references/shared-statute-engine.md（flk.npc.gov.cn API 优先；不可用时明确告知用户，不降级到非官方源）。
+**架构：** 复用 references/shared-statute-engine.md（flk.npc.gov.cn API 优先；不可用时降级到 AI 训练知识库并标注来源）。
 
 ```
 检索主题关键词
-  → flk.npc.gov.cn/api/ 官方 API（超时8秒，默认返回相关法条及原文）
-  → API 失败/超时 → 明确告知用户"官方API暂不可用，建议直接访问 flk.npc.gov.cn 查询"
+  → flk.npc.gov.cn /law-search/ 官方 API（超时8秒，默认返回相关法条及原文）
+  → API 失败/超时 → 降级到 AI 训练知识库 + 标注 [数据来源：AI知识库] + 建议访问 flk.npc.gov.cn 核验
   → 格式化输出：按法律层级排列
 ```
 
@@ -497,9 +497,9 @@ Agent：全部 6 份报告已产出，以下是汇总...
 
 ### 执行规范
 
-1. **法规检索**：优先调用 flk.npc.gov.cn 官方 API 获取税收相关法律法规原文
-2. **政策检索**：检索国家税务总局（chinatax.gov.cn）、财政部（mof.gov.cn）公告
-3. **案例检索**：检索中国裁判文书网（wenshu.court.gov.cn）税务行政案件
+1. **法规检索**：优先调用 flk.npc.gov.cn API 获取税收相关法律法规；API 不可用时降级到 AI 训练知识库并标注 `[数据来源：AI知识库]`；建议用户访问 flk.npc.gov.cn、chinatax.gov.cn、mof.gov.cn 核验最新政策
+2. **政策检索**：建议用户访问国家税务总局（chinatax.gov.cn）、财政部（mof.gov.cn）公告
+3. **案例检索**：建议用户访问中国裁判文书网（wenshu.court.gov.cn）查询税务行政案件
 
 ### 输出格式
 

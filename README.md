@@ -8,7 +8,7 @@
 |:---|:---|:---|
 | 法律咨询 | 模块A 四步深度分析（事实梳理→法律定性→法条检索→风险提示） | 22 类领域 |
 | 起诉状起草 | 模块B 要素式/通用起诉状，支持 DOCX 生成 | 35 个模板（34 专属 + 1 通用） |
-| 法条分析 | 模块C 四步深度分析 + 六步法规检索增强工作流 | flk.npc.gov.cn 官方 API |
+| 法条分析 | 模块C 四步深度分析 + 六步法规检索增强工作流 | flk.npc.gov.cn API 优先 + AI 知识库降级 |
 | 刑事辅助 | 模块D 控告/取保/辩护/附带民事/羁押沟通 | 5 类专项材料 |
 | 意图收敛 | 渐进式 3 轮状态机 + 直跳规则 + 混合意图自动拆解 | 6 大领域集群 |
 | 质量门禁 | Logic Doctor 五维自检 + 10 类异常容错 + 诉讼时效追踪 | 含连续失败熔断 |
@@ -20,10 +20,15 @@ baozheng-skills/
 ├── SKILL.md              # 运行入口（路由表 + 边界说明，~743 Token）
 ├── README.md             # 本文件
 ├── faq.md                # 常见问题解答（27 题）
+├── requirements.txt      # Python 外部依赖（CodeBuddy 自动检测安装）
 ├── scripts/
-│   ├── generate_complaint_docx.py    # 起诉状 DOCX 生成脚本
-│   ├── validate_examples.py          # 样例质量门禁脚本
-│   └── validate_category_coverage.py # 类别覆盖矩阵门禁脚本
+│   ├── flk_npc_client.py              # flk.npc.gov.cn API 客户端（6端点全覆盖）
+│   ├── law_search_engine.py           # 双通道法条检索引擎（API优先+AI降级+熔断+验证）
+│   ├── generate_complaint_docx.py     # 起诉状 DOCX 生成脚本
+│   ├── limitation_calculator.py       # 诉讼时效计算器（17条规则+四级预警）
+│   ├── damage_calculator.py           # 损害赔偿计算器（5类赔偿+法条引用）
+│   ├── validate_examples.py           # 样例质量门禁脚本
+│   └── validate_category_coverage.py  # 类别覆盖矩阵门禁脚本
 ├── tests/
 │   └── test_generate_complaint_docx.py
 ├── examples/
@@ -34,7 +39,7 @@ baozheng-skills/
 │   ├── module-c-analysis.md          # 模块C：法条分析+法规检索（C0-C3）
 │   ├── module-d-criminal.md          # 模块D：刑事专项材料辅助（5类材料）
 │   ├── shared-category-coverage.md   # 公共：22类法律领域覆盖矩阵
-│   ├── shared-statute-engine.md      # 公共：flk.npc.gov.cn API检索（不降级）
+│   ├── shared-statute-engine.md      # 公共：法条检索策略（flk.npc.gov.cn API 优先 + AI 知识库降级）
 │   ├── shared-error-handling.md      # 公共：10类异常容错处理（含连续失败熔断）
 │   ├── shared-limitation-periods.md  # 公共：诉讼时效速查
 │   ├── shared-disclaimer.md          # 公共：全局免责声明
@@ -53,14 +58,22 @@ baozheng-skills/
 
 ## 快速开始
 
+### 0. 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+依赖清单：`requests`（flk API 客户端）、`python-docx`（DOCX 生成，缺失时自动降级为纯标准库输出）。
+
 ### 1. 起草起诉状
 
 ```bash
 # 列出全部可用案由
 python scripts/generate_complaint_docx.py --list
 
-# 用示例数据填充并生成 DOCX
-python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output output/private-lending-filled.docx
+# 用示例数据填充并生成 DOCX（输出到当前目录或指定路径）
+python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output private-lending-filled.docx
 ```
 
 ### 2. 法律咨询
@@ -69,7 +82,7 @@ python scripts/generate_complaint_docx.py --case 01 --data examples/private-lend
 
 > "我借给朋友 10 万块钱，过了 2 年还没还，能起诉吗？"
 
-AI 会按四步流程分析：事实梳理 → 法律定性 → 法条检索（flk.npc.gov.cn）→ 风险提示。
+AI 会按四步流程分析：事实梳理 → 法律定性 → 法条检索（AI训练知识，建议人工核验）→ 风险提示。
 
 ### 3. 法条查询
 
@@ -99,7 +112,7 @@ AI 会按四步流程分析：事实梳理 → 法律定性 → 法条检索（f
   module-c 法条分析   module-d 刑事辅助
 
 公共复用：
-  shared-statute-engine     法条检索（flk.npc.gov.cn，不降级）
+  shared-statute-engine     法条检索（flk.npc.gov.cn API 优先 + AI 知识库降级）
   shared-error-handling     10类异常容错（含熔断）
   shared-limitation-periods 诉讼时效速查
   shared-disclaimer         全局免责声明
@@ -113,14 +126,14 @@ AI 会按四步流程分析：事实梳理 → 法律定性 → 法条检索（f
 python scripts/generate_complaint_docx.py --list
 python scripts/generate_complaint_docx.py --case 01 --dry-run
 python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --dry-run
-python scripts/generate_complaint_docx.py --case 01 --output output/private-lending.docx
-python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output output/private-lending-filled.docx
+python scripts/generate_complaint_docx.py --case 01 --output private-lending.docx
+python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output private-lending-filled.docx
 python scripts/validate_examples.py
 python scripts/validate_category_coverage.py
 python -m unittest discover -s tests
 ```
 
-说明：脚本优先使用 `python-docx`；环境未安装该包时，会自动使用 Python 标准库生成基础 `.docx` 文件。
+说明：脚本优先使用 `python-docx`；环境未安装该包时，会自动使用 Python 标准库生成基础 `.docx` 文件。CodeBuddy 加载技能时将自动检测 `requirements.txt` 并提示安装缺失依赖。
 
 ## 验证与测试
 

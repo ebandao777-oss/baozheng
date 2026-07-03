@@ -45,7 +45,7 @@
 
 ### 步骤三：法条检索
 
-依据法律定性，检索并引用现行有效的准确法条。优先调用国家法律法规数据库API（flk.npc.gov.cn）获取法条原文；API不可用时明确告知用户，建议访问 flk.npc.gov.cn 手动查询，不做降级到非官方源（包括AI训练知识）——与 `references/shared-statute-engine.md` 全局策略一致：
+依据法律定性，检索并引用现行有效的准确法条。优先调用 `scripts/flk_npc_client.py`（封装 flk.npc.gov.cn `/law-search/` API）获取实时法条原文；API 不可用时降级到 AI 训练知识库，并标注 `[数据来源：AI知识库]`——与 `references/shared-statute-engine.md` 全局双通道策略一致：
 
 - **民法典**各编（合同编、物权编、侵权责任编、婚姻家庭编、继承编等）
 - **劳动合同法**及相关司法解释
@@ -212,7 +212,7 @@
 - **重要提示**：法律法规可能随时修订，建议用户以官方最新文本为准
 
 > 📎 混合法条引擎已外置，参见 `references/shared-statute-engine.md`
-> 触发时读取该文件获取 flk.npc.gov.cn API 检索流程；API 不可用时明确告知用户（不降级到非官方源）。
+> 触发时读取该文件获取 flk.npc.gov.cn API 检索流程；API 不可用时降级到 AI 训练知识库并标注来源。
 
 ## A8. Logic Doctor 逻辑自检机制
 

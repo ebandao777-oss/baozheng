@@ -29,7 +29,7 @@ baozheng-skills 是一站式法律服务平台，提供四类核心能力：
 
 ### Q4: 这个技能的法律依据有多新？
 
-严格依据**中华人民共和国现行有效法律**，法律修订后持续同步更新。本技能内置**国家法律法规数据库 API 实时查询**功能，在回答法律问题时优先调用全国人大官方 API（flk.npc.gov.cn）获取实时、权威的法条数据，确保法条引用的准确性和时效性。具体适用请以官方最新文本及司法实践为准。
+严格依据**中华人民共和国现行有效法律**，法律修订后持续同步更新。本技能内置 `scripts/flk_npc_client.py`（封装全国人大官方 flk.npc.gov.cn 的 `/law-search/` API），在回答法律问题时优先调用官方 API 获取实时法条数据；API 不可用时降级到 AI 训练知识库，确保法条引用的准确性和时效性。具体适用请以官方最新文本及司法实践为准。
 
 ## 二、起诉状相关
 
@@ -82,11 +82,11 @@ baozheng-skills 是一站式法律服务平台，提供四类核心能力：
 
 ### Q14: 法条查询的数据来源是什么？
 
-唯一数据源是**国家法律法规数据库**（flk.npc.gov.cn）官方 API。不使用任何第三方非官方数据源，确保法条真实性和时效性。
+**双通道策略**：优先调用**国家法律法规数据库**（flk.npc.gov.cn）官方 API 获取实时法条；API 不可用时降级到 AI 训练知识库，并标注 `[数据来源：AI知识库]`。不使用任何第三方非官方数据源。详见 `references/shared-statute-engine.md`。
 
 ### Q15: 官方 API 不可用时怎么办？
 
-不降级到任何非官方数据源，明确告知用户并建议手动访问 https://flk.npc.gov.cn/ 查询。这是硬性安全边界，详见 `references/shared-statute-engine.md`。
+自动降级到 **AI 训练知识库** 提供法条引用，在法律引用末尾标注 `[数据来源：AI知识库]`，并建议用户手动访问 https://flk.npc.gov.cn/ 核验。不降级到任何第三方非官方数据源。详见 `references/shared-statute-engine.md`。
 
 ### Q16: 模块C的"四步深度分析"和"六步法规检索"有什么区别？
 
@@ -155,10 +155,10 @@ python scripts/generate_complaint_docx.py --case 01 --dry-run
 python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --dry-run
 
 # 生成空模板 DOCX
-python scripts/generate_complaint_docx.py --case 01 --output output/private-lending.docx
+python scripts/generate_complaint_docx.py --case 01 --output private-lending.docx
 
 # 用示例数据填充并生成 DOCX
-python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output output/private-lending-filled.docx
+python scripts/generate_complaint_docx.py --case 01 --data examples/private-lending-data.json --output private-lending-filled.docx
 ```
 
 > 脚本优先使用 `python-docx`；环境未安装该包时，自动使用 Python 标准库生成基础 `.docx` 文件。

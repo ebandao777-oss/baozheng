@@ -86,7 +86,7 @@ def discover_cases(skill_root: Path) -> list[CaseTemplate]:
             continue
 
         slug = match.group("slug")
-        code = slug
+        code = slug  # 刑事模板使用 slug 作为 code
         case_path = references_dir / "module-d-criminal.md"
         cases.append(
             CaseTemplate(
@@ -108,7 +108,11 @@ def select_case(cases: Iterable[CaseTemplate], case_id: str) -> CaseTemplate:
     for item in cases:
         if normalized in {item.code, item.slug.lower(), f"{item.code}-{item.slug}".lower()}:
             return item
-    available = ", ".join(f"{item.code}-{item.slug}" for item in cases)
+    # 显示时，如果 code 和 slug 相同，只显示一个
+    available = ", ".join(
+        item.code if item.code == item.slug else f"{item.code}-{item.slug}" 
+        for item in cases
+    )
     raise ValueError(f"Unknown case '{case_id}'. Available: {available}")
 
 
@@ -350,8 +354,10 @@ def build_summary(
     matched_labels: list[str] | None = None,
 ) -> dict[str, object]:
     matched_labels = matched_labels or []
+    # 显示时，如果 code 和 slug 相同，只显示一个
+    case_display = case.code if case.code == case.slug else f"{case.code}-{case.slug}"
     return {
-        "case": f"{case.code}-{case.slug}",
+        "case": case_display,
         "case_path": str(case.case_path),
         "template_path": str(case.template_path),
         "title": title,
@@ -377,7 +383,12 @@ def main() -> int:
     cases = discover_cases(skill_root)
 
     if args.list:
-        print(json.dumps([f"{item.code}-{item.slug}" for item in cases], ensure_ascii=False, indent=2))
+        # 显示时，如果 code 和 slug 相同，只显示一个
+        case_list = [
+            item.code if item.code == item.slug else f"{item.code}-{item.slug}"
+            for item in cases
+        ]
+        print(json.dumps(case_list, ensure_ascii=False, indent=2))
         return 0
 
     selected = select_case(cases, args.case)
